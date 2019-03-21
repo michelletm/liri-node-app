@@ -1,114 +1,152 @@
-require("dotenv").config();
-
-var keys = require("./keys.js");
-var spotify = new Spotify(keys.spotify);
-
-
-
-//Make it so liri.js can take in one of the following commands:
-
-
-// concert-this
-
-
-// spotify-this-song
-
-
-// movie-this
-
-
-// do-what-it-says
-
-
-
-
-
-// What Each Command Should Do
-
-
-// node liri.js concert-this <artist/band name here>
-
-
-// This will search the Bands in Town Artist Events API ("https://rest.bandsintown.com/artists/" + artist + "/events?app_id=codingbootcamp") for an artist and render the following information about each event to the terminal:
-
-
-// Name of the venue
-
-
-// Venue location
-
-
-// Date of the Event (use moment to format this as "MM/DD/YYYY")
-
-
-
-// node liri.js spotify-this-song '<song name here>'
-
-
-// This will show the following information about the song in your terminal/bash window
-
-
-// Artist(s)
-
-
-// The song's name
-
-
-// A preview link of the song from Spotify
-
-
-// The album that the song is from
-
-
-
-
-// If no song is provided then your program will default to "The Sign" by Ace of Base.
-
-// node liri.js movie-this '<movie name here>'
-
-
-// This will output the following information to your terminal/bash window:
-//   * Title of the movie.
-//   * Year the movie came out.
-//   * IMDB Rating of the movie.
-//   * Rotten Tomatoes Rating of the movie.
-//   * Country where the movie was produced.
-//   * Language of the movie.
-//   * Plot of the movie.
-//   * Actors in the movie.
-
-
-// If the user doesn't type a movie in, the program will output data for the movie 'Mr. Nobody.'
-
-
-// If you haven't watched "Mr. Nobody," then you should: http://www.imdb.com/title/tt0485947/
-
-// It's on Netflix!
-
-
-// You'll use the axios package to retrieve data from the OMDB API. Like all of the in-class activities, the OMDB API requires an API key. You may use trilogy.
-
-// node liri.js do-what-it-says
-
-
-// Using the fs Node package, LIRI will take the text inside of random.txt and then use it to call one of LIRI's commands.
-
-
-// It should run spotify-this-song for "I Want it That Way," as follows the text in random.txt.
-
-
-// Edit the text in random.txt to test out the feature for movie-this and concert-this.
-
-// BONUS
-
-
-// In addition to logging the data to your terminal/bash window, output the data to a .txt file called log.txt.
-
-
-// Make sure you append each command you run to the log.txt file.
-
-
-// Do not overwrite your file each time you run a command.
-
-
+const axios = require("axios");
+const keys = require("./keys.js");
+const fs = require("fs");
+let moment = require("moment");
+const chalk = require('chalk');
+
+const userInput = process.argv[2].toLowerCase();
+let userQuery = process.argv[3];
+
+
+
+//////CONCERT-THIS///////////////////////
+
+var concertThis = function(userQuery) {
+ 
+  axios.get(`https://rest.bandsintown.com/artists/${userQuery}/events?app_id=${keys.BAND_ID}`)
+  .then( function(response) {
+    let data = "";
+    
+    console.log(chalk.magenta("Tour/Venue: " + response.data[0].venue.name));
+    console.log("Location: " + response.data[0].venue.city);
+    console.log("Date: " + (moment(response.data[0].datetime).format("MM/DD/YYYY")));
+    data = `Tour/Venue: ${response.data[0].venue.name}\nLocation: ${response.data[0].venue.city}\nDate: ${(moment(response.data[0].datetime).format("MM/DD/YYYY"))}\n\n`
+    output(data);
+  });
+};
+
+
+/////SPOTIFY-THIS-SONG////////////////////////////
+
+var spotifyThis = function(userQuery) {
+
+  const Spotify = require("node-spotify-api");
+  const spotify = new Spotify(keys.SPOTIFY_KEY);
+
+  spotify.search({type: 'track', query: userQuery}, function(err, response) {
+    let data = ""
+    
+    if (err) {
+      return console.log(chalk.red('Error Occurred: ' + err));
+    }
+
+    console.log(chalk.greenBright("Song: " + response.tracks.items[0].name));
+    console.log("Album: " + response.tracks.items[0].album.name);
+    console.log("Artist: " + response.tracks.items[0].artists[0].name);
+    console.log("Preview: " + response.tracks.items[0].preview_url);
+      
+  if (userQuery === "") {
+    userQuery = "The Sign";
+  }
+    data = `Song: ${response.tracks.items[0].name}\nArtist: ${response.tracks.items[0].artists[0].name}\n\n`
+    output(data);
+  }
+  );
+
+};
+
+
+////////MOVIE-THIS/////////////////
+
+var movieThis = function(userQuery) {
+  axios.get(`http://www.omdbapi.com/?t=${userQuery}&y=&plot=short&apikey=${keys.OMDB_KEY}`).then(
+    function(response) {
+     let data = "";
+
+      console.log(chalk.blueBright("Movie Title: " + response.data.Title));
+      console.log("Released: " + response.data.Year);
+      console.log("IMDB Rating: " + response.data.imdbRating);
+      console.log("Rotten Tomatoes: " + response.data.Metascore);
+      console.log("Country: " + response.data.Country);
+      console.log("Language: " + response.data.Language);
+      console.log("Plot: " + response.data.Plot);
+      console.log("Actors: " + response.data.Actors);
+    
+    if(userInput === "") {
+      userQuery = "Mr. Nobody";
+      
+    }
+    data = `Movie Title: ${response.data.Title}\nReleased: ${response.data.Year}\nActors: ${response.data.Actors}\n\n`;
+    output(data);
+
+  });
+};
+
+////DO WHAT IT SAYS/////////////////////
+
+var doWhat = function() {
+  let data = "";
+  fs.readFile("random.txt", 'utf-8', function(err, response) {
+
+    var result = response.split(",");
+    console.log(response.split(','));
+
+      if (err) {
+        console.log(chalk.red('Error Occurred: ' + err));
+      }
+    
+      if(result[0] === "concert-this") {
+        concertThis(result[1]);
+        //console.log(result[1]);
+      }
+      if(result[0] === "spotify-this-song") {
+        spotifyThis(result[1]);
+      }
+      if(result[0] === "movie-this") {
+        movieThis(result[1]);
+      }
+      // if (err) {
+      //   console.log(chalk.red('Error Occurred: ' + err));
+      // }
+     
+      data =`${result[1]}\n\n`;
+      output(data);
+  });
+  
+};
+
+
+////////OUTPUT//////
+
+var output = function(data) {
+
+  fs.appendFile("log.txt", data, function(err) {
+
+    if (err) {
+      console.log(err);
+    }
+ 
+    else {
+      console.log(chalk.yellowBright("Data Added"));
+    }
+  
+  });
+};
+
+
+switch(userInput) {
+  case "concert-this":
+    concertThis(userQuery);
+    break;
+  case "spotify-this-song":
+    spotifyThis(userQuery);
+    break;
+  case "movie-this":
+    movieThis(userQuery);
+    break;
+  case "do-what-it-says":
+    doWhat();
+    //break;
+   
+};
 
