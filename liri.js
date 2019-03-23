@@ -36,8 +36,9 @@ var spotifyThis = function(userQuery) {
   const spotify = new Spotify(keys.SPOTIFY_KEY);
 
   if (!userQuery) {
-    userQuery = "The Sign";
-  }
+    userQuery = "The Sign, Ace of Base";
+
+  };
 
   spotify.search({type: 'track', query: userQuery}, function(err, response) {
      
